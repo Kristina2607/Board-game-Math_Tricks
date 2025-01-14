@@ -115,6 +115,7 @@ void printMatrix(TableElements** matrix, unsigned** visitedMatrix, int rows, int
 		}
 		std::cout << std::endl;
 	}
+	SetConsoleTextAttribute(hConsole, 7);
 }
 
 bool isValidMove(Position currP, Position newP, int rows, int cols)
@@ -124,26 +125,25 @@ bool isValidMove(Position currP, Position newP, int rows, int cols)
 			!(currP.x == newP.x && currP.y == newP.y);
 }
 
-int addToSumOfPlayer(TableElements** matrix, Position& player)
+int addToSumOfPlayer(TableElements** matrix, Position& player, int& currentSum)
 {
-	int resultOfPlayer = 0;
 	if (matrix[player.x][player.y].sign == '+') 
 	{
-		resultOfPlayer += matrix[player.x][player.y].number;
+		currentSum += matrix[player.x][player.y].number;
 	}
 	else if (matrix[player.x][player.y].sign == '-')
 	{
-		resultOfPlayer -= matrix[player.x][player.y].number;
+		currentSum -= matrix[player.x][player.y].number;
 	}
 	else if (matrix[player.x][player.y].sign == 'x') 
 	{
-		resultOfPlayer *= matrix[player.x][player.y].number;
+		currentSum *= matrix[player.x][player.y].number;
 	}
 	else if (matrix[player.x][player.y].sign == '/')
 	{
-		resultOfPlayer /= matrix[player.x][player.y].number;
+		currentSum /= matrix[player.x][player.y].number;
 	}
-	return resultOfPlayer;
+	return currentSum;
 }
 
 bool isAccessible(unsigned** visitedMatrix, int rows, int cols, Position& player)
@@ -151,7 +151,7 @@ bool isAccessible(unsigned** visitedMatrix, int rows, int cols, Position& player
 	return visitedMatrix[player.x][player.y] == 0;
 }
 
-void movePlayer(TableElements** matrix, unsigned** visitedMatrix, int rows, int cols, Position& player, int playerNumber)
+void movePlayer(TableElements** matrix, unsigned** visitedMatrix, int rows, int cols, Position& player, int playerNumber, int& currentSum)
 {
 	int newX, newY;
 	std::cout << "Player " << playerNumber <<"Enter your move (row,column):" ;
@@ -163,7 +163,7 @@ void movePlayer(TableElements** matrix, unsigned** visitedMatrix, int rows, int 
 		visitedMatrix[player.x][player.y] = playerNumber;
 		player = newP;
 		updateVisitedMatrix(visitedMatrix, player, playerNumber);
-		addToSumOfPlayer(matrix, player);
+		addToSumOfPlayer(matrix, player, currentSum); 
 	}
 	else
 	{
@@ -387,20 +387,21 @@ int main()
 	int player2Sum = 0;
 
 	//Основен цикъл за протичане на играта
-	while (hasValidMoves(player1, visitedMatrix, grid_length, grid_width)||
+	while (hasValidMoves(player1, visitedMatrix, grid_length, grid_width) ||
 		hasValidMoves(player2, visitedMatrix, grid_length, grid_width))
 	{
 		clearConsole();
 		printMatrix(matrix, visitedMatrix, grid_length, grid_width, hConsole); 
 		std::cout << "Player 1's turn. Current score: " << player1Sum << std::endl;
-		movePlayer(matrix, visitedMatrix, grid_length, grid_width, player1, 1);
+		movePlayer(matrix, visitedMatrix, grid_length, grid_width, player1, 1, player1Sum);
 
 		clearConsole();
 		printMatrix(matrix, visitedMatrix, grid_length, grid_width, hConsole);
 		std::cout << "Player 2's turn. Current score: " << player2Sum << std::endl;
-		movePlayer(matrix,visitedMatrix, grid_length, grid_width, player2, 2);
+		movePlayer(matrix,visitedMatrix, grid_length, grid_width, player2, 2, player2Sum);
 	}
 	determineWinner(player1Sum, player2Sum);
+
 	deleteMatrix(matrix, grid_length);
 	deleteVisitedMatrix(visitedMatrix, grid_length);
 	return 0;
