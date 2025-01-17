@@ -6,9 +6,14 @@
 
 const int MIN_Rows = 4;
 const int MIN_Cols = 4;
-const int MAX_Value = 10;
-//const int MAX_Value_for_multiAndDivision = 4;
+const int MAX_Value_for_addAndSubtraction = 10;
+const int MAX_Value_for_multiAndDivision = 4;
 const char signs[] = { '+', '-', 'x', '/' };
+
+const int BLUE_color = 9;
+const int RED_color = 12;
+const int WHITE_color = 7;
+const int YELLOW_color = 14;
 
 struct TableElements
 {
@@ -66,23 +71,27 @@ void fillWithRandomValues(TableElements** matrix, int rows, int cols)
 	{
 		for (int j = 0; j < cols; j++)
 		{
-			if ((i == 0 && j == 0) || (i == rows - 1 && j == cols - 1))
-			{
-				matrix[i][j].number = 0;
-				matrix[i][j].sign = ' ';
-			}
-			else
-			{
-				matrix[i][j].number = rand() % MAX_Value;
-				matrix[i][j].sign = signs[rand() % 4];
-			}
+				char sign = signs[rand() % 4];
+				int maxValue = 0;
+				switch(sign)
+				{
+				  case '-': 
+				  case '+': maxValue = MAX_Value_for_addAndSubtraction; break;
+				  case'x':
+				  case'/': maxValue = MAX_Value_for_multiAndDivision; break;
+				}
+				matrix[i][j].number = rand() % maxValue;
+				matrix[i][j].sign = sign;
 		}
 	}
 }
+
 void configureSpecialCells(TableElements** matrix, int rows, int cols)
 {
 	TableElements requiredFieldsValues[] = {{'x', 0}, {'x', 2}, {'/', 2}};
 	int requiredFieldsCount = 3;
+	matrix[0][0].number = matrix[rows - 1][cols - 1].number = 0;
+	matrix[0][0].sign = matrix[rows - 1][cols - 1].sign = ' ';
 
 	for (int i = 0; i < requiredFieldsCount; i++)
 	{
@@ -93,29 +102,61 @@ void configureSpecialCells(TableElements** matrix, int rows, int cols)
 	}	
 }
 
-void printMatrix(TableElements** matrix, unsigned** visitedMatrix, int rows, int cols, HANDLE hConsole)
+void printMatrix(TableElements** matrix, unsigned** visitedMatrix, int rows, int cols, Position& player, HANDLE hConsole)
 {
 	for (int i = 0; i < rows; i++)
 	{
 		for (int j = 0; j < cols; j++)
 		{
-			if (visitedMatrix[i][j] == 1)
+			if (i==player.x && j==player.y)
 			{
-				SetConsoleTextAttribute(hConsole, 9); // Син за играч 1
+				SetConsoleTextAttribute(hConsole, YELLOW_color);
+			}
+			else if (visitedMatrix[i][j] == 1)
+			{
+				SetConsoleTextAttribute(hConsole, BLUE_color); 
 			}
 			else if (visitedMatrix[i][j] == 2)
 			{
-				SetConsoleTextAttribute(hConsole, 12); // Червен за играч 2
+				SetConsoleTextAttribute(hConsole, RED_color); 
 			}
 			else 
 			{
-				SetConsoleTextAttribute(hConsole, 7); // Бял за непосетени
+				SetConsoleTextAttribute(hConsole, WHITE_color);
 			}
-			std::cout << matrix[i][j].sign << matrix[i][j].number << ' ';
+			std::cout << "[ " << matrix[i][j].sign << matrix[i][j].number << " ] ";
 		}
 		std::cout << std::endl;
 	}
-	SetConsoleTextAttribute(hConsole, 7);
+	SetConsoleTextAttribute(hConsole, WHITE_color);
+}
+
+void saveMatrix(const char* file, TableElements** matrix, int rows, int cols)
+{
+	std::ofstream ofs(file);
+	if (!ofs.is_open())
+	{
+		std::cout << "Error: Could not open file for saving.\n";
+		return;
+	}
+
+	ofs << rows << ' ' << cols << '\n';
+
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			ofs << matrix[i][j].sign;
+			ofs << matrix[i][j].number;
+			if (j < cols - 1)
+			{
+				ofs << " ";
+			}
+		}
+		ofs << std::endl;
+	}
+	ofs.close();
+	std::cout << "Matrix saved successfully to file: " << file << std::endl;
 }
 
 bool isValidMove(Position currP, Position newP, int rows, int cols)
@@ -154,7 +195,7 @@ bool isAccessible(unsigned** visitedMatrix, int rows, int cols, Position& player
 void movePlayer(TableElements** matrix, unsigned** visitedMatrix, int rows, int cols, Position& player, int playerNumber, int& currentSum)
 {
 	int newX, newY;
-	std::cout << "Player " << playerNumber <<"Enter your move (row,column):" ;
+	std::cout << "Player " << playerNumber <<", enter your move (row,column):" ;
 	std::cin >> newX >> newY;
 	Position newP = {newX, newY};
 
@@ -164,6 +205,10 @@ void movePlayer(TableElements** matrix, unsigned** visitedMatrix, int rows, int 
 		player = newP;
 		updateVisitedMatrix(visitedMatrix, player, playerNumber);
 		addToSumOfPlayer(matrix, player, currentSum); 
+	}
+	else if (newX == -1 && newY == -1)
+	{
+		saveMatrix ("matrix.txt", matrix, rows, cols);
 	}
 	else
 	{
@@ -190,16 +235,17 @@ void determineWinner(int player1Sum, int player2Sum)
 	}
 }
 
-bool hasValidMoves(Position& player, unsigned** visitedMatrix, int rows, int cols) {
-	for (int dx = -1; dx <= 1; dx++)
+bool hasValidMoves(Position& player, unsigned** visitedMatrix, int rows, int cols) 
+{
+	for (int distanceX = -1; distanceX <= 1; distanceX++)
 	{
-		for (int dy = -1; dy <= 1; dy++) 
+		for (int distanceY = -1; distanceY <= 1; distanceY++)
 		{
-			if (dx == 0 && dy == 0)
+			if (distanceX == 0 && distanceY == 0)
 			{
 				continue;
 			}
-			Position newP(player.x + dx, player.y + dy);
+			Position newP (player.x + distanceX, player.y + distanceY);
 			if (newP.x >= 0 && newP.x < rows && newP.y >= 0 && newP.y < cols && visitedMatrix[newP.x][newP.y] == 0) 
 			{
 				return true;
@@ -233,19 +279,23 @@ int countCols(std::ifstream& ifs)
 
 int getCharOccurance(std::ifstream& ifs, char target) 
 {
+	int startPos = ifs.tellg();
 	char current;
 	int result = 0;
-	while (true) {
+	while (true) 
+	{
 		current = ifs.get();
-
-		if (ifs.eof()) {
+		if (ifs.eof())
+		{
 			break;
 		}
-
-		if (current == target) {
+		if (current == target) 
+		{
 			result++;
 		}
 	}
+	ifs.clear();
+	ifs.seekg(0, startPos);
 	return result + 1;
 }
 
@@ -254,74 +304,41 @@ int countRows(std::ifstream& ifs)
 	return getCharOccurance(ifs, '\n');
 }
 
-void calculateDimensions(const char* inputFile, int& rows, int& cols) {
-	std::ifstream ifs(inputFile);
-
-	if (!ifs.is_open()) {
-		return;
-	}
-	int currentPos = ifs.tellg();
-	cols = countCols(ifs);
-	ifs.seekg(0, currentPos);
-	rows = countRows(ifs);
-	ifs.close();
-}
-
-TableElements** readMatrix(const char* file, TableElements** matrix, int rows, int cols) {
-	
+bool readMatrix(const char* file, TableElements** matrix, int rows, int cols) 
+{
 	std::ifstream ifs(file);
-	if (!ifs.is_open()) {
-		return nullptr;
+	if (!ifs.is_open()) 
+	{
+		return false;
 	}
 
-	for (int i = 0; i < rows; i++) {
-		for (int j = 0; j < cols; j++) {
-			//ifs >> matrix[i][j];
-		}
+	int rowCount = countRows(ifs);
+	if (rowCount == 1)
+	{
+		return false;
 	}
-	return matrix;
-}
 
-double** createCopy(const int* const* matrix, int startingRow, int startingCol, int size)
-{
-	double** temp = new double* [size];
-	for (int i = 0; i < size; i++)
-	{
-		temp[i] = new double[size];
-	}
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			temp[i][j] = matrix[startingRow + i][startingCol + j];
-		}
-	}
-	return temp;
-}
+	int fileRows = 0, fileCols = 0;
+	ifs >> fileRows;
+	ifs >> fileCols;
+	ifs.ignore();
 
-void saveMatrix(const char* file, TableElements** matrix, int rows, int cols)
-{
-	std::ofstream ofs(file);
-	if (!ofs.is_open())
+	if (fileRows != rows || fileCols != cols) 
 	{
-		std::cout << "Error: Could not open file for saving.\n";
-		return;
+		return false;
 	}
 
 	for (int i = 0; i < rows; i++)
 	{
-		for (int j = 0; j < cols; j++)
+		for (int j = 0; j < cols; j++) 
 		{
-			//ofs << matrix[i][j];
-			if (j < cols - 1)
-			{
-				ofs << " ";
-			}
+			matrix[i][j].sign = ifs.get();
+			ifs >> matrix[i][j].number;
+			ifs.ignore();
 		}
-		ofs << std::endl;
 	}
-	 ofs.close();
-	 std::cout << "Matrix saved successfully to file: " << file << std::endl;
+	ifs.close();
+	return true;
 }
 
 void clearConsole()
@@ -376,27 +393,30 @@ int main()
 
 	visitedMatrix[player1.x][player1.y] = 1; // Играч 1
 	visitedMatrix[player2.x][player2.y] = 2; // Играч 2
-	
-	fillWithRandomValues(matrix, grid_length, grid_width);
-	configureSpecialCells(matrix, grid_length, grid_width);
 
 	const char* inputFile = "matrix.txt";
-	readMatrix(inputFile, matrix, grid_length, grid_width);
-   
+	bool isRead = readMatrix(inputFile, matrix, grid_length, grid_width);
+
+	if (!isRead) 
+	{
+		fillWithRandomValues(matrix, grid_length, grid_width);
+		configureSpecialCells(matrix, grid_length, grid_width);
+	}
+
 	int player1Sum = 0;
 	int player2Sum = 0;
 
 	//Основен цикъл за протичане на играта
-	while (hasValidMoves(player1, visitedMatrix, grid_length, grid_width) ||
-		hasValidMoves(player2, visitedMatrix, grid_length, grid_width))
+	while (hasValidMoves(player1, visitedMatrix, grid_length, grid_width) &&
+		     hasValidMoves(player2, visitedMatrix, grid_length, grid_width))
 	{
 		clearConsole();
-		printMatrix(matrix, visitedMatrix, grid_length, grid_width, hConsole); 
+		printMatrix(matrix, visitedMatrix, grid_length, grid_width, player1, hConsole); 
 		std::cout << "Player 1's turn. Current score: " << player1Sum << std::endl;
 		movePlayer(matrix, visitedMatrix, grid_length, grid_width, player1, 1, player1Sum);
 
 		clearConsole();
-		printMatrix(matrix, visitedMatrix, grid_length, grid_width, hConsole);
+		printMatrix(matrix, visitedMatrix, grid_length, grid_width, player2,hConsole);
 		std::cout << "Player 2's turn. Current score: " << player2Sum << std::endl;
 		movePlayer(matrix,visitedMatrix, grid_length, grid_width, player2, 2, player2Sum);
 	}
