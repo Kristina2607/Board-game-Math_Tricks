@@ -94,22 +94,37 @@ void updateVisitedMatrix(unsigned** visitedMatrix, Position& player, int playerN
 	visitedMatrix[player.x][player.y] = playerNumber;
 }
 
+double differenceFromMiddle(int currentRow, int currentCol, int rows, int cols)
+{
+	if (currentRow < 0 || currentCol < 0)
+	{
+		return 0;
+	}
+	int centerRow = rows / 2;
+	int centerCol = cols / 2;
+	return sqrt((currentRow - centerRow) * (currentRow - centerRow) + (currentCol - centerCol) * (currentCol - centerCol)); 
+	//Евклидово разстояние
+}
+
 void fillWithRandomValues(TableElements** matrix, int rows, int cols)
 {
+	double maxDistance= differenceFromMiddle(0, 0, rows, cols);
 	for (int i = 0; i < rows; i++)
 	{
 		for (int j = 0; j < cols; j++)
 		{
+			double distance = differenceFromMiddle(i, j, rows, cols);
+			double normalizedDistance = distance / maxDistance; //0 - център, 1 - най-далеч
 			char sign = signs[rand() % 4];
 			int maxValue = 0;
 			switch (sign)
 			{
-			case '-':
-			case '+': maxValue = MAX_Value_for_addAndSubtraction; break;
-			case 'x':
-			case '/': maxValue = MAX_Value_for_multiAndDivision; break;
+			  case '-':
+			  case '+': maxValue = MAX_Value_for_addAndSubtraction; break;
+			  case 'x':
+			  case '/': maxValue = MAX_Value_for_multiAndDivision; break;
 			}
-			int currNumber = rand() % maxValue;
+			int currNumber = maxValue * (maxDistance - distance) / maxDistance;
 			if (sign == '/' && currNumber == 0)
 			{
 				j--;
@@ -119,15 +134,6 @@ void fillWithRandomValues(TableElements** matrix, int rows, int cols)
 			matrix[i][j].sign = sign;
 		}
 	}
-}
-
-double differenceFromMiddle(Position& player, int rows, int cols)
-{
-	int currentRow = player.x;
-	int currentCol = player.y;
-	int centerRow = rows / 2;
-	int centerCol = cols / 2;
-	return sqrt((currentRow - centerRow) * (currentRow - centerRow) + (currentCol - centerCol) * (currentCol - centerCol)); //Евклидово разстояние
 }
 
 void findWhichRequiredFieldsAreInTheMatrix(TableElements** matrix, int rows, int cols, TableElements* requiredFieldsValues, bool* alreadyInTheMatrix, bool** used, int size)
@@ -184,8 +190,16 @@ void configureSpecialCells(TableElements** matrix, int rows, int cols)
 
 void printMatrix(TableElements** matrix, unsigned** visitedMatrix, int rows, int cols, Position& player, HANDLE hConsole)
 {
+	std::cout << "    "; 
+	for (int j = 0; j < cols; j++)
+	{
+		std::cout << j << "      "; 
+	}
+	std::cout << std::endl;
+
 	for (int i = 0; i < rows; i++)
 	{
+		std::cout << i << "  "; 
 		for (int j = 0; j < cols; j++)
 		{
 			if (i == player.x && j == player.y)
