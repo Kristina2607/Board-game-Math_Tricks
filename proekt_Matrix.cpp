@@ -95,8 +95,6 @@ void updateVisitedMatrix(unsigned** visitedMatrix, Position& player, int playerN
 
 void fillWithRandomValues(TableElements** matrix, int rows, int cols)
 {
-	TableElements requiredFieldsValues[] = { {'x', 0}, {'x', 2}, {'/', 2}, {'+', 2}, {'-',2} };
-	int requiredFieldsCount = 5;
 	for (int i = 0; i < rows; i++)
 	{
 		for (int j = 0; j < cols; j++)
