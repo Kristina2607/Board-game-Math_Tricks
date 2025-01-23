@@ -7,6 +7,7 @@
 * @compiler  VC
 * Math Tricks */
 
+
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
@@ -241,12 +242,17 @@ void saveMatrix(const char* file, TableElements** matrix, int rows, int cols, in
 	system("pause");
 }
 
+int myAbs(int num)
+{
+	return (num < 0) ? -num : num;
+}
+
 bool isValidMove(Position currP, Position newP, int rows, int cols)
 {
-	return abs(currP.x - newP.x) <= 1 &&
-		abs(currP.y - newP.y) <= 1 &&
-		newP.x >= 0 && newP.x < rows &&
-		newP.y >= 0 && newP.y < cols &&
+	return myAbs(currP.x - newP.x) <= 1 &&
+		myAbs(currP.y - newP.y) <= 1 &&
+		newP.x >= 0 && newP.x <= rows &&
+		newP.y >= 0 && newP.y <= cols &&
 		!(currP.x == newP.x && currP.y == newP.y);
 }
 
@@ -281,17 +287,19 @@ void movePlayer(TableElements** matrix, unsigned** visitedMatrix, int rows, int 
 	int newX, newY;
 	std::cout << "Player " << playerNumber << ", enter your move (row,column):";
 	std::cin >> newX >> newY;
-	Position newP = { newX, newY };
+	Position newP = {newX, newY};
 
 	if (isValidMove(player, newP, rows, cols) && isAccessible(visitedMatrix, rows, cols, newP))
 	{
 		visitedMatrix[player.x][player.y] = playerNumber;
 		player = newP;
 		updateVisitedMatrix(visitedMatrix, player, playerNumber);
-		if (playerNumber == 1) {
+		if (playerNumber == 1) 
+		{
 			addToSumOfPlayer(matrix, player, currentSumPlayer1);
 		}
-		else {
+		else
+		{
 			addToSumOfPlayer(matrix, player, currentSumPlayer2);
 		}
 	}
@@ -317,7 +325,7 @@ bool hasValidMoves(Position& player, unsigned** visitedMatrix, int rows, int col
 				continue;
 			}
 			Position newP(player.x + distanceX, player.y + distanceY);
-			if (newP.x >= 0 && newP.x < rows && newP.y >= 0 && newP.y < cols && visitedMatrix[newP.x][newP.y] == 0)
+			if (isValidMove(player, newP, rows, cols) && isAccessible(visitedMatrix, rows, cols, newP))
 			{
 				return true;
 			}
@@ -460,7 +468,7 @@ int main()
 	srand(time(0));
 	int grid_length, grid_width;
 	std::cout << "Let's start the game! " << std::endl;
-	std::cout << "You can save the game anytime and continue playing later if you write the coordinates(-1, -1)." << std::endl;
+	std::cout << "You can save the game anytime and continue playing later if you write the coordinates (-1, -1)." << std::endl;
 	std::cout << "Input grid size:";
 	bool validGridSize = false;
 	while (!validGridSize)
@@ -495,6 +503,8 @@ int main()
 
 	if (!isRead)
 	{
+		player1Sum = 0;
+		player2Sum = 0;
 		std::cout << "No saved game found or invalid file. Starting a new game..." << std::endl;
 		fillWithRandomValues(matrix, grid_length, grid_width);
 		configureSpecialCells(matrix, grid_length, grid_width);
@@ -506,11 +516,11 @@ int main()
 		std::cin >> choice;
 		if (choice == 'n')
 		{
-			std::cout << "Starting a new game..." << std::endl;
-			player1Sum = 0;
-			player2Sum = 0;
-			fillWithRandomValues(matrix, grid_length, grid_width);
-			configureSpecialCells(matrix, grid_length, grid_width);
+				player1Sum = 0;
+				player2Sum = 0;
+				std::cout << "Starting a new game..." << std::endl;
+				fillWithRandomValues(matrix, grid_length, grid_width);
+				configureSpecialCells(matrix, grid_length, grid_width);
 		}
 		else if (choice == 'y')
 		{
